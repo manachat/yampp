@@ -2,19 +2,23 @@ package vafilonov.yampp.server;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.util.Timer;
 
-public class ClientHandler implements Runnable {
+class ClientHandler implements Runnable {
 
     public ClientHandler(Socket clientSocket) {
         client = clientSocket;
     }
-    private Socket client;
+    private final Socket client;
 
     @Override
     public void run() {
-        try (Socket socket = client) {
-            while () {
 
+
+        try (Socket socket = client) {
+            while (true) {
+                break;
+                // does nothing
             }
         } catch (IOException ioEx) {
 
