@@ -1,9 +1,13 @@
 package vafilonov.yampp.server;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
@@ -22,32 +26,35 @@ class ServerManager implements Runnable {
 
     private volatile boolean isShutdown = false;
     private final ExecutorService executor;
-    private ServerSocket server = null;
+    private ServerSocketChannel server = null;
 
     @Override
     public void run() {
         final Thread executionThread = Thread.currentThread();
-        try (ServerSocket listener = new ServerSocket(PORT);) {
+        try (ServerSocketChannel listener = ServerSocketChannel.open()) {
             server = listener;
+            listener.bind(new InetSocketAddress("localhost", PORT));
+            listener.configureBlocking(true);
 
             while (!isShutdown && !executionThread.isInterrupted()) {
-                final Socket client = listener.accept();
+                final SocketChannel client = listener.accept();
 
                 try {
-                    executor.submit(new ClientHandler(client));
+                    executor.submit(new ConnectionHandler(client));
 
                 } catch (RejectedExecutionException ejectedEx) {
                     client.close();
-
                 }
             }
 
         } catch (SocketException socketEx) {
             System.out.println("Server manager: socket closed via interruption.");
 
+        } catch (ClosedChannelException closed) {
+            System.out.println("Server manager: manager channel closed");
         } catch (IOException ioEx) {
             System.out.println("Server manager: socket I/O exception.");
-
+            ioEx.printStackTrace();
         } finally {
             if (!isShutdown) {
                 isShutdown = true;
@@ -69,7 +76,7 @@ class ServerManager implements Runnable {
         isShutdown = true;
 
         executor.shutdown();
-        System.out.println("Server manager: await termination, 10s left...");
+        System.out.println("Server manager: await executor termination, 10s left...");
 
         try {
             boolean finished = executor.awaitTermination(10, TimeUnit.SECONDS);
@@ -79,7 +86,7 @@ class ServerManager implements Runnable {
             System.err.println("Manager shutdown: error awaiting pool termination");
 
         } finally {
-            if (server != null && !server.isClosed()) {
+            if (server != null && server.isOpen()) {
                 server.close();
             }
         }

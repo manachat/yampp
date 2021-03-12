@@ -3,7 +3,7 @@ package vafilonov.yampp.server;
 import java.io.IOException;
 import java.util.Scanner;
 
-public class Main {
+public class ServerMain {
 
     private static boolean exit = false;
     private static boolean startup = false;
@@ -49,9 +49,10 @@ public class Main {
     private static void startupServer() {
         if (!startup) {
             System.out.println("Starting up server...");
-            final int port = 10000;
-            final int nthreads = 10;
+            final int port = 40000;
+            final int nthreads = 5;
             manager = new ServerManager(port, nthreads);
+            new Thread(manager).start();
             startup = true;
             System.out.println("Server started up.");
         } else {
