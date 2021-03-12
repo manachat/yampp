@@ -40,7 +40,7 @@ class ServerManager implements Runnable {
                 final SocketChannel client = listener.accept();
 
                 try {
-                    executor.submit(new ConnectionHandler(client));
+                    executor.submit(new ConnectionHandler(client, executor));
 
                 } catch (RejectedExecutionException ejectedEx) {
                     client.close();
