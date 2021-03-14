@@ -1,9 +1,8 @@
 package vafilonov.yampp.server;
 
-import vafilonov.yampp.Constants;
+import vafilonov.yampp.util.Constants;
 import vafilonov.yampp.server.userData.User;
 
-import java.awt.*;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
@@ -16,7 +15,6 @@ class ConnectionHandler implements Runnable {
     public ConnectionHandler(SocketChannel clientSocket, ExecutorService executor) {
         client = clientSocket;
         this.executor = executor;
-
     }
 
 
@@ -40,35 +38,38 @@ class ConnectionHandler implements Runnable {
             final SelectionKey networkKey =  client.register(selector, SelectionKey.OP_READ);
             ByteBuffer buf = ByteBuffer.allocate(BUFFER_SIZE);
 
-            Pipe pipa = Pipe.open();
-            Pipe.SourceChannel src =  pipa.source();
-            src.configureBlocking(false);
-            final SelectionKey pipeKey = src.register(selector, SelectionKey.OP_READ);
-            selector.close();
 
             while (executor.isShutdown() || executor.isTerminated()) {
                 selector.select();
                 for (SelectionKey k : selector.selectedKeys()) {
-                    if (k == networkKey) {
+                    if (k.isReadable()) {
                         handleNetMessage(buf);
-                    }
-                    if (k == pipeKey) {
+                    } else if (k.isWritable()) {
 
                     }
+
                 }
 
             }
+
         } catch (IOException ioEx) {
             ioEx.printStackTrace();
         }
     }
 
-    private void registerPipe(Dialog dialog) {
-
-    }
 
     private void handleNetMessage(ByteBuffer buf) throws IOException {
-        client.read(buf);
+        StringBuilder message = new StringBuilder();
+        int read = client.read(buf);
+        buf.flip();
+        //byte[] extracted = new byte[buf.remaining()];
+        String extracted = new String(buf.array(), 0, buf.remaining());
+
+        while (read != -1) {
+
+        }
+
+
         byte[] chType = new byte[3];
         buf.get(chType, 0, 3);
         String type = new String(chType);

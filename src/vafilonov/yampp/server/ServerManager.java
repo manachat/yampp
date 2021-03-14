@@ -88,6 +88,7 @@ class ServerManager implements Runnable {
         } finally {
             if (server != null && server.isOpen()) {
                 server.close();
+
             }
         }
     }

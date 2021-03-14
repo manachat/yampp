@@ -1,4 +1,4 @@
-package vafilonov.yampp;
+package vafilonov.yampp.util;
 
 public abstract class Constants {
 
