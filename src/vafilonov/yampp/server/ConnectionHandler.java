@@ -2,6 +2,7 @@ package vafilonov.yampp.server;
 
 import vafilonov.yampp.util.ByteAccumulator;
 import vafilonov.yampp.util.Constants;
+import vafilonov.yampp.util.Constants.MessageType;
 import vafilonov.yampp.server.userData.User;
 
 import java.io.IOException;
@@ -59,60 +60,56 @@ class ConnectionHandler implements Runnable {
     }
 
 
-    private void handleNetMessage(ByteBuffer buf) throws IOException {
-        StringBuilder message = new StringBuilder();
-        int read = client.read(buf);
-        buf.flip();
-        ByteAccumulator accumulator = new ByteAccumulator(read);
-        accumulator.append(buf.array(), buf.remaining());
-        buf.clear();
+    private String readMessageFromChannel(ByteBuffer buf, SelectionKey key) throws IOException {
+        final SocketChannel channel = (SocketChannel) key.channel();
+        int read = channel.read(buf);
+        final ByteAccumulator accumulator = new ByteAccumulator(read);
 
         while (read != -1) {
-            read = client.read(buf);
             buf.flip();
-            accumulator.append(buf.array(), read);
-            //TODO не нравится условие цикла, переделать все внутрь
-
+            accumulator.append(buf.array(), buf.remaining());
             buf.clear();
+            read = channel.read(buf);
         }
 
+        return new String(accumulator.array(), 0, accumulator.getSize(), StandardCharsets.UTF_8);
+    }
 
-        byte[] chType = new byte[3];
-        buf.get(chType, 0, 3);
-        String type = new String(chType);
-        byte[] chBody = new byte[buf.remaining()];
-        buf.get(chBody);
-        String body = new String(chBody).trim();
-        buf.clear();
+
+    private void handleNetMessage(ByteBuffer buf, SelectionKey key) throws IOException {
+
+        String message = readMessageFromChannel(buf, key);
+        String[] tokens = message.split("\0");
 
 
         if (!logged) {
-            logged = handleLogin(type, body);
+            logged = handleAuthentication(Constants.resolveType(tokens[0]), tokens[1]);
         } else {
-            client.read(buf);
-            System.out.println("Server recieved: " + new String(buf.array()));
-            buf.clear();
-            buf.put("Pong answer".getBytes(StandardCharsets.UTF_8));
-            buf.flip();
-            client.write(buf);
-            buf.clear();
+            // TODO retrieve message, save to archive and if possible notify handling thread
         }
     }
 
-    private boolean handleLogin(String type, String body) throws IOException {
 
+    /**
+     * Handles login/signup. Checks availability of operation and sends reply.
+     * @param type
+     * @param body
+     * @return
+     * @throws IOException
+     */
+    private boolean handleAuthentication(MessageType type, String body) throws IOException {
 
-        if (type.equals(Constants.SIGN_UP_TYPE)) {
+        if (type == MessageType.SIGN_UP) {
             try {
                 User created = User.createUser(body);
                 sessionUser = created;
             } catch (IllegalArgumentException argumentException) {
                 return false;
             }
-        } else if (type.equals(Constants.LOGIN_TYPE)) {
-            //try {
+        } else if (type == MessageType.LOGIN) {
+            try {
 
-            //}
+            }
         } else {
 
         }

@@ -14,14 +14,13 @@ public class User {
 
     /**
      * Attempts to create new user and put him into catalog.
-     * If user already exists, throws {@link IllegalArgumentException}.
+     * If user already exists, returns null.
      * @param name username
      * @return  created user profile
-     * @throws IllegalArgumentException if user already exists
      */
     public static User createUser(String name) {
         if (users.containsKey(name)){
-            throw new IllegalArgumentException("User already exists");
+            return null;
         }
         short newId = idPool++;
 
