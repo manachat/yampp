@@ -30,7 +30,7 @@ public class User {
         return newUser;
     }
 
-    public static
+
 
     private User(String name, short id) {
         this.name = name;

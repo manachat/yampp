@@ -6,6 +6,6 @@ class Dialog {
 
     public Dialog(int key) {
         int keyLower = key & ((1 << 15) - 1);   //  first 15 bits
-        int keyUpper = key &
+        //int keyUpper = key &
     }
 }

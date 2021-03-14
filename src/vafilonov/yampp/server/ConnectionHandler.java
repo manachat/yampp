@@ -1,5 +1,6 @@
 package vafilonov.yampp.server;
 
+import vafilonov.yampp.util.ByteAccumulator;
 import vafilonov.yampp.util.Constants;
 import vafilonov.yampp.server.userData.User;
 
@@ -62,11 +63,17 @@ class ConnectionHandler implements Runnable {
         StringBuilder message = new StringBuilder();
         int read = client.read(buf);
         buf.flip();
-        //byte[] extracted = new byte[buf.remaining()];
-        String extracted = new String(buf.array(), 0, buf.remaining());
+        ByteAccumulator accumulator = new ByteAccumulator(read);
+        accumulator.append(buf.array(), buf.remaining());
+        buf.clear();
 
         while (read != -1) {
+            read = client.read(buf);
+            buf.flip();
+            accumulator.append(buf.array(), read);
+            //TODO не нравится условие цикла, переделать все внутрь
 
+            buf.clear();
         }
 
 
@@ -103,11 +110,13 @@ class ConnectionHandler implements Runnable {
                 return false;
             }
         } else if (type.equals(Constants.LOGIN_TYPE)) {
-            try {
+            //try {
 
-            }
+            //}
         } else {
 
         }
+        //TODO тут везде жопа, исправитб
+        return true;
     }
 }
