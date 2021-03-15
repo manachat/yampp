@@ -2,8 +2,6 @@ package vafilonov.yampp.server;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.net.SocketException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ServerSocketChannel;
@@ -19,6 +17,7 @@ class ServerManager implements Runnable {
         PORT = port;
         N_THREADS = nThreads;
         executor = Executors.newFixedThreadPool(N_THREADS);
+        supermanager = new Supermanager();
     }
 
     private final int PORT;
@@ -27,6 +26,7 @@ class ServerManager implements Runnable {
     private volatile boolean isShutdown = false;
     private final ExecutorService executor;
     private ServerSocketChannel server = null;
+    private final Supermanager supermanager;
 
     @Override
     public void run() {
@@ -40,7 +40,7 @@ class ServerManager implements Runnable {
                 final SocketChannel client = listener.accept();
 
                 try {
-                    executor.submit(new ConnectionHandler(client, executor));
+                    executor.submit(new ConnectionHandler(client, supermanager));
 
                 } catch (RejectedExecutionException ejectedEx) {
                     client.close();
@@ -76,6 +76,7 @@ class ServerManager implements Runnable {
         isShutdown = true;
 
         executor.shutdown();
+        supermanager.shutdown();
         System.out.println("Server manager: await executor termination, 10s left...");
 
         try {

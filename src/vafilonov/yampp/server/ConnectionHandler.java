@@ -1,51 +1,50 @@
 package vafilonov.yampp.server;
 
-import vafilonov.yampp.util.ByteAccumulator;
+import vafilonov.yampp.util.BasicConnectionHandler;
 import vafilonov.yampp.util.Constants;
 import vafilonov.yampp.util.Constants.MessageType;
-import vafilonov.yampp.server.userData.User;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.ExecutorService;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 
-class ConnectionHandler implements Runnable {
+class ConnectionHandler extends BasicConnectionHandler {
 
-    public ConnectionHandler(SocketChannel clientSocket, ExecutorService executor) {
-        client = clientSocket;
-        this.executor = executor;
+
+    public ConnectionHandler(SocketChannel clientSocket, Supermanager manager) {
+        networkChannel = clientSocket;
+        this.manager = manager;
     }
 
+    private final SocketChannel networkChannel;
 
     private boolean logged = false;
-    private final SocketChannel client;
-    private final ExecutorService executor;
-    private User sessionUser;
-
-    private static final int BUFFER_SIZE = 1024;
+    private final Supermanager manager;
+    private int sessionId;
 
     @Override
     public void run() {
 
-        try (client; Selector selector = Selector.open()) {
+        try (networkChannel; Selector selector = Selector.open()) {
 
-            if (executor.isShutdown() || executor.isTerminated()) {
+            if (manager.isShutdown()) {
                 return;
             }
 
-            client.configureBlocking(false);
-            final SelectionKey networkKey =  client.register(selector, SelectionKey.OP_READ);
+            networkChannel.configureBlocking(false);
+            final SelectionKey networkKey =  networkChannel.register(selector, SelectionKey.OP_READ);
             ByteBuffer buf = ByteBuffer.allocate(BUFFER_SIZE);
 
 
-            while (executor.isShutdown() || executor.isTerminated()) {
+            while (!manager.isShutdown()) {
                 selector.select();
                 for (SelectionKey k : selector.selectedKeys()) {
                     if (k.isReadable()) {
-                        handleNetMessage(buf);
+                        ZonedDateTime utcArrival =  ZonedDateTime.now(ZoneId.of("UTC"));
+                        handleNetMessage(buf, k, utcArrival);
                     } else if (k.isWritable()) {
 
                     }
@@ -60,30 +59,18 @@ class ConnectionHandler implements Runnable {
     }
 
 
-    private String readMessageFromChannel(ByteBuffer buf, SelectionKey key) throws IOException {
-        final SocketChannel channel = (SocketChannel) key.channel();
-        int read = channel.read(buf);
-        final ByteAccumulator accumulator = new ByteAccumulator(read);
-
-        while (read != -1) {
-            buf.flip();
-            accumulator.append(buf.array(), buf.remaining());
-            buf.clear();
-            read = channel.read(buf);
-        }
-
-        return new String(accumulator.array(), 0, accumulator.getSize(), StandardCharsets.UTF_8);
-    }
 
 
-    private void handleNetMessage(ByteBuffer buf, SelectionKey key) throws IOException {
 
-        String message = readMessageFromChannel(buf, key);
+    private void handleNetMessage(ByteBuffer buf, final SelectionKey key, final ZonedDateTime timestamp) throws IOException {
+
+        String message = readMessageFromNetChannel(buf, key);
         String[] tokens = message.split("\0");
 
 
         if (!logged) {
-            logged = handleAuthentication(Constants.resolveType(tokens[0]), tokens[1]);
+            String reply = handleAuthentication(Constants.resolveType(tokens[0]), tokens[1]);
+            sendMessageThroughNetChannel(reply, key);
         } else {
             // TODO retrieve message, save to archive and if possible notify handling thread
         }
@@ -94,26 +81,39 @@ class ConnectionHandler implements Runnable {
      * Handles login/signup. Checks availability of operation and sends reply.
      * @param type
      * @param body
-     * @return
+     * @return reply message
      * @throws IOException
+     * @throws IllegalArgumentException
      */
-    private boolean handleAuthentication(MessageType type, String body) throws IOException {
+    private String handleAuthentication(MessageType type, String body) throws IOException {
 
         if (type == MessageType.SIGN_UP) {
-            try {
-                User created = User.createUser(body);
-                sessionUser = created;
-            } catch (IllegalArgumentException argumentException) {
-                return false;
+            int userId = manager.createUser(body);
+            String reply;
+            if (userId == -1) {
+                reply = Constants.ERROR_TYPE + "\0Authentication failed. User \"" + body + "\" already exists";
+                logged = false;
+            } else if (userId == -10) {
+                reply = Constants.ERROR_TYPE + "\0Authentication failed. User limit reached.";
+                logged = false;
+            } else {
+                reply = Constants.SIGN_UP_TYPE + "\0Sign up successful";
+                sessionId = userId;
+                logged = true;
             }
+
+            return reply;
         } else if (type == MessageType.LOGIN) {
+
             try {
 
             }
         } else {
-
+            throw new IllegalArgumentException("Invalid authentication message type.");
         }
         //TODO тут везде жопа, исправитб
         return true;
     }
+
+
 }
