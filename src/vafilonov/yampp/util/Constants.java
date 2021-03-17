@@ -2,6 +2,8 @@ package vafilonov.yampp.util;
 
 public abstract class Constants {
 
+    // TODO ЗАПИЛИ СЕПАРАТОРЫ
+    public static final String TOKEN_SEPARATOR = "\0";
     public static final String LOGIN_TYPE = "LOG";
     public static final String SIGN_UP_TYPE = "SUP";
     public static final String MESSAGE_TYPE = "MSG";
