@@ -6,15 +6,18 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
-import java.util.concurrent.ExecutorService;
 
 public abstract class BasicConnectionHandler implements Runnable {
 
     protected static final int BUFFER_SIZE = 1024;
 
+    //TODO добавить к чтению и записи длину сообщения в первые n байт
+    protected static final int msgLenInBytes = 4;   // messages with int bytes...
+
     protected String readMessageFromNetChannel(ByteBuffer buf, SelectionKey key) throws IOException {
         final SocketChannel channel = (SocketChannel) key.channel();
         int read = channel.read(buf);
+
         final ByteAccumulator accumulator = new ByteAccumulator(read);
 
         while (read != -1) {
@@ -34,7 +37,7 @@ public abstract class BasicConnectionHandler implements Runnable {
     }
 
     protected void sendMessageThroughNetChannel(String message, SelectionKey key, ZonedDateTime time) throws IOException{
-        String timedMessage = message + "\0" + time;
+        String timedMessage = message + Constants.TOKEN_SEPARATOR + time;
         sendMessageThroughNetChannel(timedMessage, key);
     }
 }

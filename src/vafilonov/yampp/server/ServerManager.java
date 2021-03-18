@@ -65,6 +65,7 @@ class ServerManager implements Runnable {
 
     }
 
+    // TODO move to run?
     /**
      * Attempts to shutdown server
      * @throws IOException in case of I/O error on socket closing
@@ -77,10 +78,10 @@ class ServerManager implements Runnable {
 
         executor.shutdown();
         supermanager.shutdown();
-        System.out.println("Server manager: await executor termination, 10s left...");
+        System.out.println("Server manager: await executor termination, 30s left...");
 
         try {
-            boolean finished = executor.awaitTermination(10, TimeUnit.SECONDS);
+            boolean finished = executor.awaitTermination(30, TimeUnit.SECONDS);
             System.out.println("Server manager:termination successful\n\tTasks left: " + !finished);
 
         } catch (InterruptedException consumed) {

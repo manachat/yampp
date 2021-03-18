@@ -9,13 +9,15 @@ public abstract class Constants {
     public static final String MESSAGE_TYPE = "MSG";
     public static final String ERROR_TYPE = "ERR";
     public static final String ECHO_TYPE = "ECH";
+    public static final String SIGNAL_TYPE = "SIG";
 
     public enum MessageType {
         LOGIN,
         SIGN_UP,
         MESSAGE,
         ERROR,
-        ECHO
+        ECHO,
+        SIGNAL
     }
 
     public enum ConnectionState {
@@ -35,6 +37,8 @@ public abstract class Constants {
                 return MessageType.ERROR;
             case ECHO_TYPE:
                 return MessageType.ECHO;
+            case SIGNAL_TYPE:
+                return MessageType.SIGNAL;
             default:
                 throw new IllegalArgumentException("Unknown type");
         }

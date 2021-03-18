@@ -25,3 +25,4 @@ out/
 hs_err_pid*
 
 implicit_contracts.txt
+yampp1.sqlite
