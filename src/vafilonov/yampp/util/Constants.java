@@ -10,6 +10,7 @@ public abstract class Constants {
     public static final String ERROR_TYPE = "ERR";      //  ERR/0errcode/0err_msg/0time
     public static final String ECHO_TYPE = "ECH";       //  ECH/0{init_message}/0time
     public static final String SIGNAL_TYPE = "SIG";     //  SIG/0sigcode
+    public static final String ALIVE_TYPE = "ALV";      //  ALV
 
     public enum MessageType {
         LOGIN,
@@ -17,7 +18,8 @@ public abstract class Constants {
         MESSAGE,
         ERROR,
         ECHO,
-        SIGNAL
+        SIGNAL,
+        ALIVE
     }
 
     public enum ClientState {
@@ -40,6 +42,8 @@ public abstract class Constants {
                 return MessageType.ECHO;
             case SIGNAL_TYPE:
                 return MessageType.SIGNAL;
+            case ALIVE_TYPE:
+                return MessageType.ALIVE;
             default:
                 throw new IllegalArgumentException("Unknown type");
         }

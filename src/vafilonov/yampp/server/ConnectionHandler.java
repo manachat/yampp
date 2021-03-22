@@ -42,7 +42,7 @@ class ConnectionHandler extends BasicConnectionHandler {
             ByteBuffer buf = ByteBuffer.allocate(BUFFER_SIZE);
 
             while (!manager.isShutdown()) {
-                selector.select();
+                int keynum = selector.select(120000);   //  wait 2 min until connection check
                 for (SelectionKey k : selector.selectedKeys()) {
                     if (k.isReadable()) {
                         ZonedDateTime utcArrival =  ZonedDateTime.now(ZoneId.of("UTC"));
@@ -52,10 +52,13 @@ class ConnectionHandler extends BasicConnectionHandler {
                         k.interestOps(SelectionKey.OP_READ);    //  reset for read
                     } else {
                         // not possible
-
+                        throw new IllegalStateException("State error");
                     }
                 }
 
+                if (!networkChannel.isConnected()) {
+                    break;
+                }
             }
 
         } catch (IOException ioEx) {
@@ -89,6 +92,10 @@ class ConnectionHandler extends BasicConnectionHandler {
 
         String message = readMessageFromNetChannel(buf, key);
         String[] tokens = message.split(Constants.TOKEN_SEPARATOR);
+        MessageType type = Constants.resolveType(tokens[0]);
+        if (type == MessageType.ALIVE) {
+            return;
+        }
 
         // TODO возможно не стоит разделять на logged а обрабатывать от типа сообщения
         if (!logged) {
@@ -104,9 +111,10 @@ class ConnectionHandler extends BasicConnectionHandler {
             sendMessageThroughNetChannel(reply, key);
         } else {
             // TODO retrieve message, save to archive and if possible notify handling thread
-            MessageType type = Constants.resolveType(tokens[0]);
             String reply = handleClientMessage(type, tokens);
-            manager.submitMessage(sessionId, tokens[1], tokens[2], timestamp);
+            if (type == MessageType.MESSAGE) {
+                manager.submitMessage(sessionId, tokens[1], tokens[2], timestamp);
+            }
             sendMessageThroughNetChannel(reply, key, timestamp);
         }
     }
@@ -122,7 +130,11 @@ class ConnectionHandler extends BasicConnectionHandler {
 
         if (type == MessageType.SIGNAL) {
             // TODO когда-нибудь пойму что это значит и сделаю
-            throw new IllegalArgumentException("Is not yet implemented. ");
+            echoReply = Constants.ECHO_TYPE + Constants.TOKEN_SEPARATOR + tokens[1] + " disconnected.";
+            logged = false;
+            username = null;
+            sessionId = 0;
+            //throw new IllegalArgumentException("Is not yet implemented. ");
         } else if (type == MessageType.MESSAGE) {
             echoReply = Constants.ECHO_TYPE + Constants.TOKEN_SEPARATOR + tokens[2] + Constants.TOKEN_SEPARATOR + tokens[3];
 

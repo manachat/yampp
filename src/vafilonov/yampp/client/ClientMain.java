@@ -3,13 +3,20 @@ package vafilonov.yampp.client;
 
 import vafilonov.yampp.util.Constants;
 
+import java.net.InetAddress;
 import java.util.Scanner;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ClientMain {
 
     private static boolean exit = false;
 
     private static Constants.ClientState state = Constants.ClientState.INITIAL;
+    static final ExecutorService executor = Executors.newSingleThreadExecutor();
+
+    static final int PORT = 40000;
 
 
     private static OutputService output;
@@ -20,6 +27,8 @@ public class ClientMain {
         Thread outservice = new Thread(output);
         outservice.setDaemon(true);
         outservice.start();
+        NetworkHandler networkHandler = new NetworkHandler(InetAddress.getLoopbackAddress(), PORT, output);
+        new Thread(networkHandler).start();
 
         output.serviceMessage("Welcome to yampp.\nPrint /help to see list of commands.");
         output.nextLine();
