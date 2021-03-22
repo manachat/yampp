@@ -16,29 +16,6 @@ public class ClientMain {
     private static boolean exit = false;
 
     public static void main(String[] args) {
-
-        InetAddress address = InetAddress.getLoopbackAddress();
-        int port = 40000;
-        PrintWriter writer;
-        try (Socket socket = new Socket(address, port)) {
-            writer = new PrintWriter(socket.getOutputStream(),true);
-            writer.println("Client message");
-            Scanner reader = new Scanner(socket.getInputStream());
-            String ans = reader.nextLine();
-            System.out.println("I got: " + ans);
-            System.out.println("Socket is connected: " + socket.isClosed());
-
-        } catch (IOException ioex) {
-            System.out.println("Socket IOex");
-            ioex.printStackTrace();
-        }
-        System.out.println("Socket end");
-        boolean t = true;
-        if (t)
-            return;
-
-
-
         final Scanner userInput = new Scanner(System.in);
 
         System.out.println("Server manager terminal startup.");

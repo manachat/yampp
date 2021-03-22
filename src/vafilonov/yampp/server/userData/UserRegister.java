@@ -1,5 +1,10 @@
 package vafilonov.yampp.server.userData;
 
+
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -9,9 +14,35 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class UserRegister {
 
     /**
-     * mapping
+     * mapping of username to User instance
      */
-    private final ConcurrentHashMap<String, Integer> users = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, User> users = new ConcurrentHashMap<>();
+
+    /**
+     * array of users for Id access
+     */
+    private final ArrayList<User> userVector = new ArrayList<>();
+
+
+    /**
+     * Returns userId associated with name
+     * @param username username
+     * @return userId or -1 if user does not exist
+     */
+    int getUserIdByName(String username) {
+        User u = users.getOrDefault(username, null);
+        return u == null ? -1 : u.getId();
+    }
+
+    User getUserById(int id) {
+        return userVector.get(id - 1);  // vector begins with 0, userId's begin with 1
+    }
+
+    User getUserByName(String name) {
+        return users.getOrDefault(name, null);
+    }
+
+
 
     /**
      * Pool of userIds
@@ -20,7 +51,7 @@ public class UserRegister {
 
     /**
      * Attempts to create new user and put him into catalog.
-     * If user already exists, returns null.
+     * Returns id of created user or error code if creation is impossible
      * @param name username
      * @return created user id; -1 if user already exists, -10 if user limit reached
      */
@@ -31,24 +62,60 @@ public class UserRegister {
         int newId =  idPool.addAndGet(1);
 
         /*
-        Needed for dialog_id format
+        Needed for userVector
          */
         if (newId < 0) {
             return -10;
         }
 
-        users.put(name, newId);
+        User newUser = new User(name, newId);
+
+        users.put(name, newUser);
+        userVector.add(newUser);
         return newId;
     }
 
-    /**
-     * Returns userId associated with
-     * @param username username
-     * @return userId or -1 if user does not exist
-     */
-    public int getUserId(String username) {
-        return users.getOrDefault(username, -1);
+    static class User {
+        private final int       id;
+        private final String    name;
+
+        private final Queue<Integer> incomingSenders = new ArrayDeque<>();
+
+        synchronized void offerSender(int id) {
+            incomingSenders.offer(id);
+        }
+
+        /**
+         * polls sender from queue
+         * if queue is empty, returns - 1
+         * @return
+         */
+        synchronized int pollSender() {
+            if (!incomingSenders.isEmpty()) {
+                return incomingSenders.poll();
+            } else {
+                return -1;
+            }
+        }
+
+        private User(String name, int id) {
+            this.name = name;
+            this.id = id;
+        }
+
+        public int getId() {
+            return id;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+
     }
+
+
+
 
 
 

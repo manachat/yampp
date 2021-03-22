@@ -4,12 +4,12 @@ public abstract class Constants {
 
     // TODO ЗАПИЛИ СЕПАРАТОРЫ
     public static final String TOKEN_SEPARATOR = "\0";
-    public static final String LOGIN_TYPE = "LOG";
-    public static final String SIGN_UP_TYPE = "SUP";
-    public static final String MESSAGE_TYPE = "MSG";
-    public static final String ERROR_TYPE = "ERR";
-    public static final String ECHO_TYPE = "ECH";
-    public static final String SIGNAL_TYPE = "SIG";
+    public static final String LOGIN_TYPE = "LOG";      //  LOG/0username
+    public static final String SIGN_UP_TYPE = "SUP";    //  SUP/0username
+    public static final String MESSAGE_TYPE = "MSG";    //  MSG/0sender/0dest/0message
+    public static final String ERROR_TYPE = "ERR";      //  ERR/0errcode/0err_msg/0time
+    public static final String ECHO_TYPE = "ECH";       //  ECH/0{init_message}/0time
+    public static final String SIGNAL_TYPE = "SIG";     //  SIG/0sigcode
 
     public enum MessageType {
         LOGIN,
@@ -20,9 +20,10 @@ public abstract class Constants {
         SIGNAL
     }
 
-    public enum ConnectionState {
+    public enum ClientState {
         INITIAL,
-        LOGGED
+        LOGGEDIN,
+        DIALOG
     }
 
     public static MessageType resolveType(String input) {

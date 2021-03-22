@@ -26,3 +26,5 @@ hs_err_pid*
 
 implicit_contracts.txt
 yampp1.sqlite
+src/vafilonov/yampp/util/Message*
+src/vafilonov/yampp/util/UserMessage.java

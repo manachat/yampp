@@ -1,7 +1,13 @@
 package vafilonov.yampp.client;
 
-class OutputService {
+import java.util.PriorityQueue;
+
+class OutputService implements Runnable{
 
 
 
+    @Override
+    public void run() {
+
+    }
 }

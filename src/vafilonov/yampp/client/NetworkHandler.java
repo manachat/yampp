@@ -1,4 +1,11 @@
 package vafilonov.yampp.client;
 
-class NetworkHandler {
+import vafilonov.yampp.util.BasicConnectionHandler;
+
+class NetworkHandler extends BasicConnectionHandler {
+
+    @Override
+    public void run() {
+
+    }
 }

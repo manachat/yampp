@@ -11,28 +11,40 @@ public abstract class BasicConnectionHandler implements Runnable {
 
     protected static final int BUFFER_SIZE = 1024;
 
+
     //TODO добавить к чтению и записи длину сообщения в первые n байт
     protected static final int msgLenInBytes = 4;   // messages with int bytes...
 
+    protected final ByteBuffer lenBuf = ByteBuffer.allocate(msgLenInBytes);
+
     protected String readMessageFromNetChannel(ByteBuffer buf, SelectionKey key) throws IOException {
         final SocketChannel channel = (SocketChannel) key.channel();
-        int read = channel.read(buf);
 
-        final ByteAccumulator accumulator = new ByteAccumulator(read);
+        channel.read(lenBuf);
+        int len = lenBuf.getInt();
+        final ByteAccumulator accumulator = new ByteAccumulator(len);
 
-        while (read != -1) {
+        while (len >= BUFFER_SIZE) {
+            channel.read(buf);
+            len -= BUFFER_SIZE;
             buf.flip();
             accumulator.append(buf.array(), buf.remaining());
             buf.clear();
-            read = channel.read(buf);
         }
+        ByteBuffer remainder = ByteBuffer.allocate(len);
+        channel.read(remainder);
+        accumulator.append(buf.array());
 
         return new String(accumulator.array(), 0, accumulator.getSize(), StandardCharsets.UTF_8);
     }
 
     protected void sendMessageThroughNetChannel(String message, SelectionKey key) throws IOException {
         final SocketChannel channel = (SocketChannel) key.channel();
-        ByteBuffer send = ByteBuffer.wrap(message.getBytes(StandardCharsets.UTF_8));
+        int len = message.getBytes(StandardCharsets.UTF_8).length;
+
+        ByteBuffer send = ByteBuffer.allocate(msgLenInBytes + len);
+        send.putInt(len);
+        send.put(message.getBytes(StandardCharsets.UTF_8));
         channel.write(send);
     }
 
