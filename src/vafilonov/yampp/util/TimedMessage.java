@@ -19,4 +19,5 @@ public class TimedMessage {
     public ZonedDateTime getTime() {
         return time;
     }
+
 }

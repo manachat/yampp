@@ -1,52 +1,74 @@
 package vafilonov.yampp.client;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.net.InetAddress;
-import java.net.Socket;
-import java.util.PriorityQueue;
-import java.util.Queue;
+
+import vafilonov.yampp.util.Constants;
+
 import java.util.Scanner;
-import java.util.concurrent.ExecutorService;
 
 public class ClientMain {
 
     private static boolean exit = false;
 
+    private static Constants.ClientState state = Constants.ClientState.INITIAL;
+
+
+    private static OutputService output;
+
     public static void main(String[] args) {
         final Scanner userInput = new Scanner(System.in);
+        output = new OutputService();
+        Thread outservice = new Thread(output);
+        outservice.setDaemon(true);
+        outservice.start();
 
-        System.out.println("Server manager terminal startup.");
+        output.serviceMessage("Welcome to yampp.\nPrint /help to see list of commands.");
+        output.nextLine();
 
         while (!exit) {
             System.out.print("Enter command: ");
-            String command = userInput.nextLine().trim();
+            String input = userInput.nextLine().trim();
 
-            switch (command) {
-                case "startup":
-
+            switch (state) {
+                case INITIAL:
+                    handleInitial(input);
                     break;
-                case "exit":    //  intentional lack of break
-                    exit = true;
+                case LOGGEDIN:
+                    handleLoggedIn(input);
                     break;
-                case "shutdown":
-
-                    break;
-                case "help":
-                    System.out.println("List of available commands:\n" +
-                            "\tstartup - start the server\n" +
-                            "\tshutdown - shutdown server\n" +
-                            "\texit - shutdown & exit\n");
-                    break;
-                default:
-                    System.out.println("Unknown command. Type \"help\" to see list of available commands.");
+                case DIALOG:
+                    handleDialog(input);
                     break;
             }
         }
 
         System.out.println("Goodbye.");
+
+    }
+
+    private static void handleInitial(String input) {
+        if (input.charAt(0) == '/') {
+            String[] words = input.split("\\s");
+            if (words[0].equals("/login")) {
+
+            } else if (words[0].equals("/signup")) {
+
+            } else if (words[0].equals("/help")) {
+                output.serviceMessage("/login [username] - login\n" +
+                        "/signup [username - sign up]\n" +
+                        "/help - this message");
+            } else {
+                output.serviceMessage("Unknown command. Print /help to see list of commands.");
+            }
+        } else {
+            output.serviceMessage("Unknown command. Print /help to see list of commands.");
+        }
+    }
+
+    private static void handleLoggedIn(String input) {
+
+    }
+
+    private static void handleDialog(String input) {
 
     }
 }
