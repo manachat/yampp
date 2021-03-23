@@ -33,9 +33,11 @@ public abstract class BasicConnectionHandler implements Runnable {
         }
         ByteBuffer remainder = ByteBuffer.allocate(len);
         channel.read(remainder);
-        accumulator.append(buf.array());
-
-        return new String(accumulator.array(), 0, accumulator.getSize(), StandardCharsets.UTF_8);
+        accumulator.append(remainder.array());
+        System.err.println("Net channel read");
+        String extracted = new String(accumulator.array(), 0, accumulator.getSize(), StandardCharsets.UTF_8);
+        System.err.println(extracted);
+        return extracted;
     }
 
     protected void sendMessageThroughNetChannel(String message, SelectionKey key) throws IOException {
@@ -45,7 +47,9 @@ public abstract class BasicConnectionHandler implements Runnable {
         ByteBuffer send = ByteBuffer.allocate(msgLenInBytes + len);
         send.putInt(len);
         send.put(message.getBytes(StandardCharsets.UTF_8));
+        System.err.println(new String(send.array()));
         channel.write(send);
+        System.err.println("sent through net channel");
     }
 
     protected void sendMessageThroughNetChannel(String message, SelectionKey key, ZonedDateTime time) throws IOException{

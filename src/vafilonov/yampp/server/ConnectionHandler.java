@@ -43,21 +43,27 @@ class ConnectionHandler extends BasicConnectionHandler {
 
             while (!manager.isShutdown()) {
                 int keynum = selector.select(40000);   //  wait 40s until connection check
+                System.err.println("Selected");
 
                 if (keynum == 0) {
                     if (!networkChannel.isConnected()) {
+                        System.err.println("timed out");
                         break;
                     }
                     if (networkKey.interestOps() == SelectionKey.OP_WRITE) {
+                        System.err.println("key::write->read");
                         networkKey.interestOps(SelectionKey.OP_READ);       //  check for leftout messages and check for read
                     }
                 } else {
                     for (SelectionKey k : selector.selectedKeys()) {
                         if (k.isReadable()) {
                             ZonedDateTime utcArrival = ZonedDateTime.now(ZoneId.of("UTC"));
+                            System.err.println("selected readable");
                             handleNetMessage(buf, k, utcArrival);
+
                         } else if (k.isWritable()) {
                             handleNotification(k);
+
                         } else {
                             // not possible
                             throw new IllegalStateException("State error");
@@ -71,6 +77,7 @@ class ConnectionHandler extends BasicConnectionHandler {
             ioEx.printStackTrace();
         } finally {
             manager.unregisterUserThread(username);
+            System.err.println("ConHandler finally");
         }
     }
 
@@ -103,8 +110,8 @@ class ConnectionHandler extends BasicConnectionHandler {
             return;
         }
 
-        // TODO возможно не стоит разделять на logged а обрабатывать от типа сообщения
         if (!logged) {
+            System.err.println("!logged");
             // Invalid argument here signals about logic errors in messages
             String reply = handleAuthentication(Constants.resolveType(tokens[0]), tokens[1]);
             if (logged) {
@@ -179,6 +186,7 @@ class ConnectionHandler extends BasicConnectionHandler {
      * @throws IllegalArgumentException incorrect message type
      */
     private String handleAuthentication(MessageType type, String body) {
+        System.err.println("Authentication handle");
 
         String reply;
         int userId;
@@ -207,6 +215,7 @@ class ConnectionHandler extends BasicConnectionHandler {
                 reply = Constants.ERROR_TYPE + Constants.TOKEN_SEPARATOR + "Authentication failed. User \"" +
                         body + "\" does not exist.";
                 logged = false;
+                System.err.println("Login refused");
             } else {
                 reply = Constants.ECHO_TYPE + Constants.TOKEN_SEPARATOR + "Login successful.";
                 sessionId = userId;

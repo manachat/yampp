@@ -36,7 +36,7 @@ public class ClientMain {
         output.nextLine();
         try {
             while (!exit) {
-                System.out.print("Enter command: ");
+                output.serviceMessage("Enter command: ");
                 String input = userInput.nextLine().trim();
                 if (input.isEmpty()) {
                     continue;
@@ -203,7 +203,7 @@ public class ClientMain {
 
     private void submitMessage(Constants.MessageType type, String message) throws InterruptedException {
         if (networkHandler.isShutdown()) {
-            System.out.println("Critical error occured.");
+            System.out.println("Error. Network connection offline.");
             exit = true;
             return;
         }

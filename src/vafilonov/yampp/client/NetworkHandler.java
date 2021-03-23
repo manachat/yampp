@@ -19,6 +19,9 @@ import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
+import static java.nio.channels.SelectionKey.OP_READ;
+import static java.nio.channels.SelectionKey.OP_WRITE;
+
 class NetworkHandler extends BasicConnectionHandler {
 
 
@@ -53,17 +56,22 @@ class NetworkHandler extends BasicConnectionHandler {
 
             while(!shutdown) {
                 int keyNum = selector.select(30000);     //  send alive message every 30s
+                System.err.println("NetworkHandler::selected");
                 if (keyNum == 0) {
-                    if (channelKey.interestOps() == SelectionKey.OP_WRITE) {    //  check for left client messages
+                    if (channelKey.interestOps() == OP_WRITE) {    //  check for left client messages
+                        System.err.println("NetworkHandler::write->read");
                         channelKey.interestOps(SelectionKey.OP_READ);
                     } else {
+                        System.err.println("NetworkHandler::alive sent");
                         sendMessageThroughNetChannel(Constants.ALIVE_TYPE, channelKey);
                     }
                 } else {
                     for (SelectionKey key : selector.selectedKeys()) {
                         if (key.isReadable()) {
+                            System.err.println("NetworkHandler::readable_key");
                             handleServerMessage(buf, key);
                         } else if (key.isWritable()) {
+                            System.err.println("NetworkHandler::writable_key");
                             handleClientMessage(key);
                         } else {
                             throw new IllegalStateException("State error");
@@ -83,11 +91,13 @@ class NetworkHandler extends BasicConnectionHandler {
             ioEx.printStackTrace();
         } finally {
             shutdown = true;
+            System.err.println("NetworkHandler::run_finally");
         }
     }
 
     private void handleServerMessage(ByteBuffer buf, SelectionKey key) throws IOException {
         String message = readMessageFromNetChannel(buf, key);
+        System.err.println("serverMessage");
 
         switch (state) {
             case INITIAL:
@@ -182,6 +192,7 @@ class NetworkHandler extends BasicConnectionHandler {
 
     private void handleClientMessage(SelectionKey key) throws InterruptedException, IOException {
         TypedMessage msg = clientMessages.take();
+        System.err.println("clientMessage");
 
         switch (state) {
 
@@ -207,11 +218,14 @@ class NetworkHandler extends BasicConnectionHandler {
     }
 
     private void processClientInitial(TypedMessage msg) throws IOException {
+        System.err.println("ClientInitial");
         if (msg.type == Constants.MessageType.SIGN_UP || msg.type == Constants.MessageType.LOGIN) {
             synchronized (this) {
                 state = ClientState.LOGIN_TRANSIT;
             }
+            System.err.println("state changed, message sent");
             sendMessageThroughNetChannel(msg.message, channelKey);
+
         } else {
             throw new IllegalStateException("Illegal client initial state.");
         }
@@ -258,7 +272,9 @@ class NetworkHandler extends BasicConnectionHandler {
 
     public void sendMessage(Constants.MessageType type, String message) throws InterruptedException {
         clientMessages.put(new TypedMessage(type, message));
-        channelKey.interestOps(SelectionKey.OP_WRITE);
+        channelKey.interestOps(OP_WRITE);   // TODO КЛЮЧИ НЕЛЬЗЯ ОБНОВЛЯТЬ В ЗАБЛОЧЕНОМ СЕЛЕКТЕ?
+        networkSelector.wakeup();
+        System.err.println("NetworkHandler::sendMessage");
     }
 
     public synchronized ClientState getState() {
