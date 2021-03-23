@@ -20,14 +20,18 @@ public class DataManager {
 
 
     // submits message to dialog register
-    public void submitMessage(int sender, String dest, String message, ZonedDateTime time) {
+    public boolean submitMessage(int sender, String dest, String message, ZonedDateTime time) {
         var senderUsr = userRegister.getUserById(sender);
         var destUsr = userRegister.getUserByName(dest);
+        if (destUsr == null) {
+            return false;
+        }
         DialogRegister.Dialog dialog = dialogRegister.getDialog(senderUsr.getId(), destUsr.getId());
         TimedMessage timedMessage = new TimedMessage(message, time);
         dialog.putMessage(sender, timedMessage);
         destUsr.offerSender(sender);
         tryNotification(dest);
+        return true;
     }
 
     // attempts notification of online thread

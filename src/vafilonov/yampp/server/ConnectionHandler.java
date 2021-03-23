@@ -42,23 +42,29 @@ class ConnectionHandler extends BasicConnectionHandler {
             ByteBuffer buf = ByteBuffer.allocate(BUFFER_SIZE);
 
             while (!manager.isShutdown()) {
-                int keynum = selector.select(120000);   //  wait 2 min until connection check
-                for (SelectionKey k : selector.selectedKeys()) {
-                    if (k.isReadable()) {
-                        ZonedDateTime utcArrival =  ZonedDateTime.now(ZoneId.of("UTC"));
-                        handleNetMessage(buf, k, utcArrival);
-                    } else if (k.isWritable()) {
-                        handleNotification(k);
-                        k.interestOps(SelectionKey.OP_READ);    //  reset for read
-                    } else {
-                        // not possible
-                        throw new IllegalStateException("State error");
+                int keynum = selector.select(40000);   //  wait 40s until connection check
+
+                if (keynum == 0) {
+                    if (!networkChannel.isConnected()) {
+                        break;
+                    }
+                    if (networkKey.interestOps() == SelectionKey.OP_WRITE) {
+                        networkKey.interestOps(SelectionKey.OP_READ);       //  check for leftout messages and check for read
+                    }
+                } else {
+                    for (SelectionKey k : selector.selectedKeys()) {
+                        if (k.isReadable()) {
+                            ZonedDateTime utcArrival = ZonedDateTime.now(ZoneId.of("UTC"));
+                            handleNetMessage(buf, k, utcArrival);
+                        } else if (k.isWritable()) {
+                            handleNotification(k);
+                        } else {
+                            // not possible
+                            throw new IllegalStateException("State error");
+                        }
                     }
                 }
 
-                if (!networkChannel.isConnected()) {
-                    break;
-                }
             }
 
         } catch (IOException ioEx) {
@@ -93,7 +99,7 @@ class ConnectionHandler extends BasicConnectionHandler {
         String message = readMessageFromNetChannel(buf, key);
         String[] tokens = message.split(Constants.TOKEN_SEPARATOR);
         MessageType type = Constants.resolveType(tokens[0]);
-        if (type == MessageType.ALIVE) {
+        if (type == MessageType.ALIVE) {    //  discard alive message
             return;
         }
 
@@ -113,9 +119,28 @@ class ConnectionHandler extends BasicConnectionHandler {
             // TODO retrieve message, save to archive and if possible notify handling thread
             String reply = handleClientMessage(type, tokens);
             if (type == MessageType.MESSAGE) {
-                manager.submitMessage(sessionId, tokens[1], tokens[2], timestamp);
+                if (tokens[3].isEmpty()) {
+                    /*
+                    When client sends MSG with empty body it means he asks server to ask for user existence
+                    ECHO reply - yes, ERR reply - no
+                    reply body is empty
+                     */
+                    if (manager.getUserId(tokens[2]) > 0) {
+                        reply = Constants.ECHO_TYPE + Constants.TOKEN_SEPARATOR;
+
+                    } else {
+                        reply = Constants.ERROR_TYPE + Constants.TOKEN_SEPARATOR +
+                                "User \"" + tokens[2] + "\" does not exist";
+
+                    }
+
+                } else if (!manager.submitMessage(sessionId, tokens[1], tokens[2], timestamp)) {
+                    reply = Constants.ERROR_TYPE + Constants.TOKEN_SEPARATOR +
+                            "User \"" + tokens[2] + "\" does not exist";
+
+                }
             }
-            sendMessageThroughNetChannel(reply, key, timestamp);
+            sendMessageThroughNetChannel(reply, key, timestamp);    // TODO должен ли он посылать disconnected?
         }
     }
 

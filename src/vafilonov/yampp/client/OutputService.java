@@ -4,13 +4,14 @@ import vafilonov.yampp.util.TimedMessage;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 
 class OutputService implements Runnable{
 
 
-    BlockingQueue<TimedMessage> outQueue = new BlockingQueue<>(10);
+    BlockingQueue<TimedMessage> outQueue = new ArrayBlockingQueue<>(10);
 
     @Override
     public void run() {

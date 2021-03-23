@@ -34,10 +34,20 @@ public class UserRegister {
         return u == null ? -1 : u.getId();
     }
 
+    /**
+     * Returns user by its id
+     * @param id userId
+     * @return  user
+     */
     User getUserById(int id) {
         return userVector.get(id - 1);  // vector begins with 0, userId's begin with 1
     }
 
+    /**
+     * Returns user by its name or null if he does not exist.
+     * @param name username
+     * @return user or null in case of error
+     */
     User getUserByName(String name) {
         return users.getOrDefault(name, null);
     }

@@ -4,6 +4,7 @@ public abstract class Constants {
 
     // TODO ЗАПИЛИ СЕПАРАТОРЫ
     public static final String TOKEN_SEPARATOR = "\0";
+
     public static final String LOGIN_TYPE = "LOG";      //  LOG/0username
     public static final String SIGN_UP_TYPE = "SUP";    //  SUP/0username
     public static final String MESSAGE_TYPE = "MSG";    //  MSG/0sender/0dest/0message
@@ -11,6 +12,7 @@ public abstract class Constants {
     public static final String ECHO_TYPE = "ECH";       //  ECH/0{init_message}/0time
     public static final String SIGNAL_TYPE = "SIG";     //  SIG/0sigcode
     public static final String ALIVE_TYPE = "ALV";      //  ALV
+    public static final String INTERNAL_TYPE = "INT";   //
 
     public enum MessageType {
         LOGIN,
@@ -19,12 +21,15 @@ public abstract class Constants {
         ERROR,
         ECHO,
         SIGNAL,
-        ALIVE
+        ALIVE,
+        INTERNAL
     }
 
     public enum ClientState {
         INITIAL,
-        LOGGEDIN,
+        LOGIN_TRANSIT,
+        LOGGED_IN,
+        DIALOG_TRANSIT,
         DIALOG
     }
 
