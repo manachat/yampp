@@ -44,40 +44,34 @@ class ConnectionHandler extends BasicConnectionHandler {
             while (!manager.isShutdown()) {
                 int keynum = selector.select(40000);   //  wait 40s until connection check
                 System.err.println("Selected");
+                if (!networkChannel.isConnected()) {
+                    System.err.println("timed out");
+                    break;
+                }
 
-                if (keynum == 0) {
-                    if (!networkChannel.isConnected()) {
-                        System.err.println("timed out");
-                        break;
-                    }
-                    if (networkKey.interestOps() == SelectionKey.OP_WRITE) {
-                        System.err.println("key::write->read");
-                        networkKey.interestOps(SelectionKey.OP_READ);       //  check for leftout messages and check for read
-                    }
-                } else {
-                    for (SelectionKey k : selector.selectedKeys()) {
-                        if (k.isReadable()) {
-                            ZonedDateTime utcArrival = ZonedDateTime.now(ZoneId.of("UTC"));
-                            System.err.println("selected readable");
-                            handleNetMessage(buf, k, utcArrival);
+                for (SelectionKey k : selector.selectedKeys()) {
+                    if (k.isReadable()) {
+                        ZonedDateTime utcArrival = ZonedDateTime.now(ZoneId.of("UTC"));
+                        System.err.println("selected readable");
+                        handleNetMessage(buf, k, utcArrival);
 
-                        } else if (k.isWritable()) {
-                            handleNotification(k);
+                    } else if (k.isWritable()) {
+                        handleNotification(k);
 
-                        } else {
-                            // not possible
-                            throw new IllegalStateException("State error");
-                        }
+                    } else {
+                        // not possible
+                        throw new IllegalStateException("State error");
                     }
                 }
+
 
             }
 
         } catch (IOException ioEx) {
             ioEx.printStackTrace();
         } finally {
-            manager.unregisterUserThread(username);
             System.err.println("ConHandler finally");
+            manager.unregisterUserThread(username);
         }
     }
 
@@ -90,6 +84,7 @@ class ConnectionHandler extends BasicConnectionHandler {
             sendMessageThroughNetChannel(reply, key, ret.getTime());
             ret = manager.retrieveMessage(sessionId);
         }
+        key.interestOps(SelectionKey.OP_READ);
     }
 
 

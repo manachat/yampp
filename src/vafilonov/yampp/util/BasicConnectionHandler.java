@@ -6,6 +6,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
+import java.util.Arrays;
 
 public abstract class BasicConnectionHandler implements Runnable {
 
@@ -47,6 +48,7 @@ public abstract class BasicConnectionHandler implements Runnable {
         ByteBuffer send = ByteBuffer.allocate(msgLenInBytes + len);
         send.putInt(len);
         send.put(message.getBytes(StandardCharsets.UTF_8));
+        System.err.println(Arrays.toString(send.array()));
         System.err.println(new String(send.array()));
         channel.write(send);
         System.err.println("sent through net channel");

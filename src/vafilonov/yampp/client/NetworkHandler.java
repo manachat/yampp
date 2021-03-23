@@ -55,29 +55,22 @@ class NetworkHandler extends BasicConnectionHandler {
             ByteBuffer buf = ByteBuffer.allocate(BUFFER_SIZE);
 
             while(!shutdown) {
-                int keyNum = selector.select(30000);     //  send alive message every 30s
+                int keyNum = selector.select();     //  send alive message every 30s
                 System.err.println("NetworkHandler::selected");
-                if (keyNum == 0) {
-                    if (channelKey.interestOps() == OP_WRITE) {    //  check for left client messages
-                        System.err.println("NetworkHandler::write->read");
-                        channelKey.interestOps(SelectionKey.OP_READ);
+
+                for (SelectionKey key : selector.selectedKeys()) {
+                    if (key.isReadable()) {
+                        System.err.println("NetworkHandler::readable_key");
+                        handleServerMessage(buf, key);
+                    } else if (key.isWritable()) {
+                        System.err.println("NetworkHandler::writable_key");
+                        handleClientMessage(key);
+                        key.interestOps(OP_READ);
                     } else {
-                        System.err.println("NetworkHandler::alive sent");
-                        sendMessageThroughNetChannel(Constants.ALIVE_TYPE, channelKey);
-                    }
-                } else {
-                    for (SelectionKey key : selector.selectedKeys()) {
-                        if (key.isReadable()) {
-                            System.err.println("NetworkHandler::readable_key");
-                            handleServerMessage(buf, key);
-                        } else if (key.isWritable()) {
-                            System.err.println("NetworkHandler::writable_key");
-                            handleClientMessage(key);
-                        } else {
-                            throw new IllegalStateException("State error");
-                        }
+                        throw new IllegalStateException("State error");
                     }
                 }
+
             }
 
 
@@ -213,8 +206,8 @@ class NetworkHandler extends BasicConnectionHandler {
                 break;
 
         }
-
-        //key.interestOps(SelectionKey.OP_READ);
+        System.err.println("switch end");
+        key.interestOps(SelectionKey.OP_READ);
     }
 
     private void processClientInitial(TypedMessage msg) throws IOException {
