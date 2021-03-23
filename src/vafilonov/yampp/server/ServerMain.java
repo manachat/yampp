@@ -49,7 +49,7 @@ public class ServerMain {
     private static void startupServer() {
         if (!startup) {
             System.out.println("Starting up server...");
-            final int port = 40000;
+            final int port = 16666;
             final int nthreads = 5;
             manager = new ServerManager(port, nthreads);
             new Thread(manager).start();

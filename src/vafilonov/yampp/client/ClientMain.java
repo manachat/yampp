@@ -4,6 +4,7 @@ package vafilonov.yampp.client;
 import vafilonov.yampp.util.Constants;
 
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -17,18 +18,18 @@ public class ClientMain {
     private NetworkHandler networkHandler;
     private String currentUser;
 
-    static final int PORT = 40000;
+    static final int PORT = 16666;
 
 
     private OutputService output;
 
-    private void start() throws InterruptedException {
+    private void start() throws InterruptedException, UnknownHostException {
         final Scanner userInput = new Scanner(System.in);
         output = new OutputService();
         Thread outservice = new Thread(output);
         outservice.setDaemon(true);
         outservice.start();
-        networkHandler = new NetworkHandler(InetAddress.getLoopbackAddress(), PORT, output);
+        networkHandler = new NetworkHandler(InetAddress.getByName("192.168.1.50"), PORT, output);
         new Thread(networkHandler).start();
         Thread.sleep(500);
 
@@ -119,6 +120,9 @@ public class ClientMain {
     }
 
     private void handleTransit() throws InterruptedException {
+        if (networkHandler.isShutdown()) {
+            exit = true;
+        }
         output.serviceMessage("Waiting for server respond...");
         Thread.sleep(100);
     }
@@ -138,7 +142,7 @@ public class ClientMain {
                     } else {
                         submitMessage(Constants.MessageType.MESSAGE,
                                 Constants.MESSAGE_TYPE + Constants.TOKEN_SEPARATOR + currentUser
-                                        + Constants.TOKEN_SEPARATOR + words[1] + Constants.TOKEN_SEPARATOR);
+                                        + Constants.TOKEN_SEPARATOR + words[1] + Constants.TOKEN_SEPARATOR + " ");
                     }
                     Thread.sleep(100);
                 }

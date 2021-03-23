@@ -20,9 +20,17 @@ public abstract class BasicConnectionHandler implements Runnable {
 
     protected String readMessageFromNetChannel(ByteBuffer buf, SelectionKey key) throws IOException {
         final SocketChannel channel = (SocketChannel) key.channel();
+        if (!channel.isConnected()) {
+            return null;
+        }
 
+        lenBuf.clear();
         channel.read(lenBuf);
+        lenBuf.flip();
         int len = lenBuf.getInt();
+        if (len == 0) {
+            return null;
+        }
         final ByteAccumulator accumulator = new ByteAccumulator(len);
 
         while (len >= BUFFER_SIZE) {
@@ -48,9 +56,14 @@ public abstract class BasicConnectionHandler implements Runnable {
         ByteBuffer send = ByteBuffer.allocate(msgLenInBytes + len);
         send.putInt(len);
         send.put(message.getBytes(StandardCharsets.UTF_8));
+
         System.err.println(Arrays.toString(send.array()));
         System.err.println(new String(send.array()));
-        channel.write(send);
+        send.flip();
+        while (send.hasRemaining()) {
+            int a = channel.write(send);
+            System.err.println("Written: " + a);
+        }
         System.err.println("sent through net channel");
     }
 

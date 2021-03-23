@@ -40,7 +40,7 @@ public class UserRegister {
      * @return  user
      */
     User getUserById(int id) {
-        return userVector.get(id - 1);  // vector begins with 0, userId's begin with 1
+        return userVector.get(id);
     }
 
     /**
@@ -81,7 +81,8 @@ public class UserRegister {
         User newUser = new User(name, newId);
 
         users.put(name, newUser);
-        userVector.add(newUser);
+        //userVector.add(newUser);
+        userVector.set(newId, newUser);
         return newId;
     }
 

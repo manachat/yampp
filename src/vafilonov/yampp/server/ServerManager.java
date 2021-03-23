@@ -5,9 +5,7 @@ import vafilonov.yampp.server.userData.DataManager;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
-import java.nio.channels.ClosedChannelException;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
@@ -35,14 +33,16 @@ class ServerManager implements Runnable {
         final Thread executionThread = Thread.currentThread();
         try (ServerSocketChannel listener = ServerSocketChannel.open()) {
             server = listener;
-            listener.bind(new InetSocketAddress("localhost", PORT));
+            listener.bind(new InetSocketAddress(PORT));
             listener.configureBlocking(true);
+
 
             while (!isShutdown && !executionThread.isInterrupted()) {
                 final SocketChannel client = listener.accept();
+                client.configureBlocking(false);
 
                 try {
-                    executor.submit(new ConnectionHandler(client, dataManager));
+                    executor.execute(new ConnectionHandler(client, dataManager));
 
                 } catch (RejectedExecutionException ejectedEx) {
                     client.close();

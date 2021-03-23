@@ -11,6 +11,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Iterator;
+import java.util.Set;
 
 
 class ConnectionHandler extends BasicConnectionHandler {
@@ -38,17 +40,38 @@ class ConnectionHandler extends BasicConnectionHandler {
             }
 
             networkChannel.configureBlocking(false);
-            final SelectionKey networkKey = networkChannel.register(selector, SelectionKey.OP_READ);
+            SelectionKey netKey = networkChannel.register(selector, SelectionKey.OP_READ);
+            netKey.interestOps(SelectionKey.OP_READ);
             ByteBuffer buf = ByteBuffer.allocate(BUFFER_SIZE);
 
             while (!manager.isShutdown()) {
-                int keynum = selector.select(40000);   //  wait 40s until connection check
-                System.err.println("Selected");
+                selector.select(10000);   //  wait 40s until connection check
+
                 if (!networkChannel.isConnected()) {
                     System.err.println("timed out");
                     break;
                 }
 
+
+                Set<SelectionKey> selectedSet = selector.selectedKeys();
+                Iterator<SelectionKey> iter = selectedSet.iterator();
+                while (iter.hasNext()) {
+                    SelectionKey k = iter.next();
+                    if (k.isReadable()) {
+                        ZonedDateTime utcArrival = ZonedDateTime.now(ZoneId.of("UTC"));
+                        handleNetMessage(buf, k, utcArrival);
+
+                    } else if (k.isWritable()) {
+                        handleNotification(k);
+                        k.interestOps(SelectionKey.OP_READ);
+                    } else {
+                        // not possible
+                        throw new IllegalStateException("State error");
+                    }
+                    iter.remove();
+
+                }
+                /*
                 for (SelectionKey k : selector.selectedKeys()) {
                     if (k.isReadable()) {
                         ZonedDateTime utcArrival = ZonedDateTime.now(ZoneId.of("UTC"));
@@ -57,12 +80,14 @@ class ConnectionHandler extends BasicConnectionHandler {
 
                     } else if (k.isWritable()) {
                         handleNotification(k);
-
+                        k.interestOps(SelectionKey.OP_READ);
                     } else {
                         // not possible
                         throw new IllegalStateException("State error");
                     }
                 }
+
+                 */
 
 
             }
@@ -99,6 +124,9 @@ class ConnectionHandler extends BasicConnectionHandler {
     private void handleNetMessage(ByteBuffer buf, final SelectionKey key, final ZonedDateTime timestamp) throws IOException {
 
         String message = readMessageFromNetChannel(buf, key);
+        if (message == null) {
+            throw new IOException("Zero read");
+        }
         String[] tokens = message.split(Constants.TOKEN_SEPARATOR);
         MessageType type = Constants.resolveType(tokens[0]);
         if (type == MessageType.ALIVE) {    //  discard alive message
@@ -106,7 +134,7 @@ class ConnectionHandler extends BasicConnectionHandler {
         }
 
         if (!logged) {
-            System.err.println("!logged");
+
             // Invalid argument here signals about logic errors in messages
             String reply = handleAuthentication(Constants.resolveType(tokens[0]), tokens[1]);
             if (logged) {
@@ -181,7 +209,6 @@ class ConnectionHandler extends BasicConnectionHandler {
      * @throws IllegalArgumentException incorrect message type
      */
     private String handleAuthentication(MessageType type, String body) {
-        System.err.println("Authentication handle");
 
         String reply;
         int userId;
@@ -210,7 +237,7 @@ class ConnectionHandler extends BasicConnectionHandler {
                 reply = Constants.ERROR_TYPE + Constants.TOKEN_SEPARATOR + "Authentication failed. User \"" +
                         body + "\" does not exist.";
                 logged = false;
-                System.err.println("Login refused");
+
             } else {
                 reply = Constants.ECHO_TYPE + Constants.TOKEN_SEPARATOR + "Login successful.";
                 sessionId = userId;

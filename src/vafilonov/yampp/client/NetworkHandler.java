@@ -15,7 +15,9 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -48,7 +50,6 @@ class NetworkHandler extends BasicConnectionHandler {
     public void run() {
         try (SocketChannel channel = SocketChannel.open(new InetSocketAddress(address, port));
              Selector selector = Selector.open()) {
-
             networkSelector = selector;
             channel.configureBlocking(false);
             channelKey = channel.register(selector, SelectionKey.OP_READ);
@@ -56,8 +57,24 @@ class NetworkHandler extends BasicConnectionHandler {
 
             while(!shutdown) {
                 int keyNum = selector.select();     //  send alive message every 30s
-                System.err.println("NetworkHandler::selected");
 
+                Set<SelectionKey> selectedSet = selector.selectedKeys();
+                Iterator<SelectionKey> iter = selectedSet.iterator();
+                while (iter.hasNext()) {
+                    SelectionKey key = iter.next();
+                    if (key.isReadable()) {
+                        handleServerMessage(buf, key);
+                    } else if (key.isWritable()) {
+                        handleClientMessage(key);
+                        key.interestOps(OP_READ);
+                    } else {
+                        throw new IllegalStateException("State error");
+                    }
+                    iter.remove();
+
+
+                }
+                /*
                 for (SelectionKey key : selector.selectedKeys()) {
                     if (key.isReadable()) {
                         System.err.println("NetworkHandler::readable_key");
@@ -70,6 +87,8 @@ class NetworkHandler extends BasicConnectionHandler {
                         throw new IllegalStateException("State error");
                     }
                 }
+
+                 */
 
             }
 
@@ -84,13 +103,14 @@ class NetworkHandler extends BasicConnectionHandler {
             ioEx.printStackTrace();
         } finally {
             shutdown = true;
-            System.err.println("NetworkHandler::run_finally");
         }
     }
 
     private void handleServerMessage(ByteBuffer buf, SelectionKey key) throws IOException {
         String message = readMessageFromNetChannel(buf, key);
-        System.err.println("serverMessage");
+        if (message == null) {
+            throw new IOException("zero read");
+        }
 
         switch (state) {
             case INITIAL:
@@ -185,7 +205,6 @@ class NetworkHandler extends BasicConnectionHandler {
 
     private void handleClientMessage(SelectionKey key) throws InterruptedException, IOException {
         TypedMessage msg = clientMessages.take();
-        System.err.println("clientMessage");
 
         switch (state) {
 
@@ -206,17 +225,17 @@ class NetworkHandler extends BasicConnectionHandler {
                 break;
 
         }
-        System.err.println("switch end");
+
         key.interestOps(SelectionKey.OP_READ);
     }
 
     private void processClientInitial(TypedMessage msg) throws IOException {
-        System.err.println("ClientInitial");
+
         if (msg.type == Constants.MessageType.SIGN_UP || msg.type == Constants.MessageType.LOGIN) {
             synchronized (this) {
                 state = ClientState.LOGIN_TRANSIT;
             }
-            System.err.println("state changed, message sent");
+
             sendMessageThroughNetChannel(msg.message, channelKey);
 
         } else {
@@ -265,9 +284,9 @@ class NetworkHandler extends BasicConnectionHandler {
 
     public void sendMessage(Constants.MessageType type, String message) throws InterruptedException {
         clientMessages.put(new TypedMessage(type, message));
-        channelKey.interestOps(OP_WRITE);   // TODO КЛЮЧИ НЕЛЬЗЯ ОБНОВЛЯТЬ В ЗАБЛОЧЕНОМ СЕЛЕКТЕ?
+        channelKey.interestOps(OP_WRITE);
         networkSelector.wakeup();
-        System.err.println("NetworkHandler::sendMessage");
+
     }
 
     public synchronized ClientState getState() {

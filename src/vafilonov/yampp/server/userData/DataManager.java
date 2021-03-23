@@ -77,7 +77,9 @@ public class DataManager {
      * @param username
      */
     public void unregisterUserThread(String username) {
-        online.remove(username);
+        if (username != null) {
+            online.remove(username);
+        }
     }
 
     /**
