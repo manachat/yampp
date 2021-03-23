@@ -149,7 +149,7 @@ class ConnectionHandler extends BasicConnectionHandler {
             // TODO retrieve message, save to archive and if possible notify handling thread
             String reply = handleClientMessage(type, tokens);
             if (type == MessageType.MESSAGE) {
-                if (tokens[3].isEmpty()) {
+                if (tokens[3].isEmpty() /*|| tokens[3].equals(" ")*/) {
                     /*
                     When client sends MSG with empty body it means he asks server to ask for user existence
                     ECHO reply - yes, ERR reply - no
@@ -164,7 +164,7 @@ class ConnectionHandler extends BasicConnectionHandler {
 
                     }
 
-                } else if (!manager.submitMessage(sessionId, tokens[1], tokens[2], timestamp)) {
+                } else if (!manager.submitMessage(sessionId, tokens[2], tokens[3], timestamp)) {
                     reply = Constants.ERROR_TYPE + Constants.TOKEN_SEPARATOR +
                             "User \"" + tokens[2] + "\" does not exist";
 

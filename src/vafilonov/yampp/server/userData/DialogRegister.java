@@ -16,6 +16,7 @@ public class DialogRegister {
 
     public Dialog getDialog(int key1, int key2) {
         if (key1 == key2) {
+            System.err.println("WRONG_KEYS " + key1 + " " + key2);
             throw new IllegalArgumentException("Keys are equal.");
         }
         Dialog d;

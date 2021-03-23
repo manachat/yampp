@@ -26,6 +26,7 @@ public class DataManager {
         if (destUsr == null) {
             return false;
         }
+
         DialogRegister.Dialog dialog = dialogRegister.getDialog(senderUsr.getId(), destUsr.getId());
         TimedMessage timedMessage = new TimedMessage(message, time);
         dialog.putMessage(sender, timedMessage);
