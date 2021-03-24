@@ -3,6 +3,7 @@ package vafilonov.yampp.client;
 
 import vafilonov.yampp.util.Constants;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Scanner;
@@ -65,7 +66,11 @@ public class ClientMain {
             output.serviceMessage("Interrupted.");
             interex.printStackTrace();
         } finally {
-            networkHandler.shutdown();
+            try {
+                networkHandler.shutdown();
+            } catch (IOException ioEx) {
+                // consume
+            }
         }
 
         System.out.println("Goodbye.");
@@ -122,9 +127,11 @@ public class ClientMain {
     private void handleTransit() throws InterruptedException {
         if (networkHandler.isShutdown()) {
             exit = true;
+            output.serviceMessage("Network handler offline");
+        } else {
+            output.serviceMessage("Waiting for server respond...");
+            Thread.sleep(100);
         }
-        output.serviceMessage("Waiting for server respond...");
-        Thread.sleep(100);
     }
 
     private void handleLoggedIn(String input) throws InterruptedException {
@@ -167,8 +174,13 @@ public class ClientMain {
     }
 
     private void handleDialogTransit() throws InterruptedException {
-        output.serviceMessage("Getting dialog info...");
-        Thread.sleep(100);
+        if (networkHandler.isShutdown()) {
+            exit = true;
+            output.serviceMessage("Network handler offline");
+        } else {
+            output.serviceMessage("Getting dialog info...");
+            Thread.sleep(100);
+        }
     }
 
     private void handleDialog(String input) throws InterruptedException {

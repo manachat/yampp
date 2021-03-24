@@ -56,7 +56,7 @@ class NetworkHandler extends BasicConnectionHandler {
             ByteBuffer buf = ByteBuffer.allocate(BUFFER_SIZE);
 
             while(!shutdown) {
-                int keyNum = selector.select();     //  send alive message every 30s
+                selector.select();
 
                 Set<SelectionKey> selectedSet = selector.selectedKeys();
                 Iterator<SelectionKey> iter = selectedSet.iterator();
@@ -198,6 +198,8 @@ class NetworkHandler extends BasicConnectionHandler {
         String[] tokens = message.split(Constants.TOKEN_SEPARATOR);
         if (tokens[0].equals(Constants.MESSAGE_TYPE)) {
             output.submitMessage(new TimedMessage(tokens[1] + ": " + tokens[3], ZonedDateTime.parse(tokens[4])));
+        } else if (tokens[0].equals(Constants.ECHO_TYPE)) {
+            output.submitMessage(new TimedMessage(tokens[1] + ": " + tokens[3], ZonedDateTime.parse(tokens[4])));
         } else {
             throw new IllegalStateException("Illegal server dialog state.");
         }
@@ -252,12 +254,13 @@ class NetworkHandler extends BasicConnectionHandler {
             synchronized (this) {
                 state = ClientState.DIALOG;
             }
-            currentDialog = msg.message.split(Constants.TOKEN_SEPARATOR)[1];
+            currentDialog = msg.message.split(Constants.TOKEN_SEPARATOR)[2];
 
         } else if (msg.type == Constants.MessageType.MESSAGE) {
             synchronized (this) {
                 state = ClientState.DIALOG_TRANSIT;
             }
+            currentDialog = msg.message.split(Constants.TOKEN_SEPARATOR)[2];
             sendMessageThroughNetChannel(msg.message, channelKey);
 
         } else {
@@ -293,17 +296,14 @@ class NetworkHandler extends BasicConnectionHandler {
         return state;
     }
 
-    public void shutdown() {
+    public void shutdown() throws IOException {
         shutdown = true;
-        /*
 
-        soft shutdown policy
-
-        if (networkSelector != null && networkSelector.isOpen()) {
+        if (networkSelector != null) {
             networkSelector.close();
         }
 
-         */
+
 
     }
 

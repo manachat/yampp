@@ -57,14 +57,12 @@ public abstract class BasicConnectionHandler implements Runnable {
         send.putInt(len);
         send.put(message.getBytes(StandardCharsets.UTF_8));
 
-        System.err.println(Arrays.toString(send.array()));
+        System.err.println("send through net channel");
         System.err.println(new String(send.array()));
         send.flip();
         while (send.hasRemaining()) {
             int a = channel.write(send);
-            System.err.println("Written: " + a);
         }
-        System.err.println("sent through net channel");
     }
 
     protected void sendMessageThroughNetChannel(String message, SelectionKey key, ZonedDateTime time) throws IOException{

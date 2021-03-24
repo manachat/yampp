@@ -104,8 +104,7 @@ class ConnectionHandler extends BasicConnectionHandler {
     private void handleNotification(SelectionKey key) throws IOException {
         TimedMessage ret = manager.retrieveMessage(sessionId);
         while (ret != null) {
-            String reply = Constants.MESSAGE_TYPE + Constants.TOKEN_SEPARATOR + username + Constants.TOKEN_SEPARATOR +
-                    ret.getMessage();
+            String reply = ret.getMessage();
             sendMessageThroughNetChannel(reply, key, ret.getTime());
             ret = manager.retrieveMessage(sessionId);
         }
@@ -125,10 +124,12 @@ class ConnectionHandler extends BasicConnectionHandler {
 
         String message = readMessageFromNetChannel(buf, key);
         if (message == null) {
-            throw new IOException("Zero read");
+            throw new IOException("HANDLE MESSAGE ZERO READ");
         }
+
         String[] tokens = message.split(Constants.TOKEN_SEPARATOR);
         MessageType type = Constants.resolveType(tokens[0]);
+
         if (type == MessageType.ALIVE) {    //  discard alive message
             return;
         }
@@ -149,13 +150,15 @@ class ConnectionHandler extends BasicConnectionHandler {
             // TODO retrieve message, save to archive and if possible notify handling thread
             String reply = handleClientMessage(type, tokens);
             if (type == MessageType.MESSAGE) {
-                if (tokens[3].isEmpty() /*|| tokens[3].equals(" ")*/) {
+                if (tokens[3].isEmpty() || tokens[3].matches("\\s")) {
                     /*
                     When client sends MSG with empty body it means he asks server to ask for user existence
                     ECHO reply - yes, ERR reply - no
                     reply body is empty
                      */
-                    if (manager.getUserId(tokens[2]) > 0) {
+                    if (tokens[1].equals(tokens[2])) {
+                        reply = Constants.ERROR_TYPE + Constants.TOKEN_SEPARATOR + "Cannot dialog with yourself.";
+                    } else if (manager.getUserId(tokens[2]) > 0) {
                         reply = Constants.ECHO_TYPE + Constants.TOKEN_SEPARATOR;
 
                     } else {
@@ -164,7 +167,7 @@ class ConnectionHandler extends BasicConnectionHandler {
 
                     }
 
-                } else if (!manager.submitMessage(sessionId, tokens[2], tokens[3], timestamp)) {
+                } else if (!manager.submitMessage(sessionId, tokens[2], message, timestamp)) {
                     reply = Constants.ERROR_TYPE + Constants.TOKEN_SEPARATOR +
                             "User \"" + tokens[2] + "\" does not exist";
 
@@ -191,7 +194,8 @@ class ConnectionHandler extends BasicConnectionHandler {
             sessionId = 0;
             //throw new IllegalArgumentException("Is not yet implemented. ");
         } else if (type == MessageType.MESSAGE) {
-            echoReply = Constants.ECHO_TYPE + Constants.TOKEN_SEPARATOR + tokens[2] + Constants.TOKEN_SEPARATOR + tokens[3];
+            echoReply = Constants.ECHO_TYPE + Constants.TOKEN_SEPARATOR + tokens[1] + Constants.TOKEN_SEPARATOR +
+                    tokens[2] + Constants.TOKEN_SEPARATOR + tokens[3];
 
         } else {
             throw new IllegalArgumentException("Invalid message type");
